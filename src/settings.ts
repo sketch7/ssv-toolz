@@ -28,7 +28,7 @@ export function readSettings(): SsvSettings {
 		const raw = JSON.parse(readFileSync(settingsPath, "utf8")) as Record<string, unknown>;
 		// migrate legacy massExecDir field
 		if (!("configRoot" in raw) && "massExecDir" in raw) {
-			raw["configRoot"] = raw["massExecDir"];
+			raw.configRoot = raw.massExecDir;
 		}
 		const result = v.safeParse(SsvSettingsSchema, raw);
 		return result.success ? result.output : {};

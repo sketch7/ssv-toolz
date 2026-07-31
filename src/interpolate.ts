@@ -27,7 +27,7 @@ export function interpolate(template: string, vars: InterpolationVars): string {
  *   {anyKey}         — any key defined in config.vars
  */
 export function buildVars(config: MassCommandsConfig, project: ProjectConfig): InterpolationVars {
-	const org = project.org ?? config.org ?? config.vars?.["org"] ?? "";
+	const org = project.org ?? config.org ?? config.vars?.org ?? "";
 
 	return {
 		// config.vars spread first (lowest priority)

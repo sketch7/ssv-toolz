@@ -22,7 +22,7 @@ program
 	.version(pkg.version, "-v, --version")
 	.option("--log-level <level>", "Log verbosity: silent|error|warn|info|debug|verbose", "info")
 	.hook("preAction", cmd => {
-		const level = (cmd.opts() as { logLevel: string }).logLevel;
+		const level = (cmd.opts()).logLevel;
 		const levelMap: Record<string, number> = { silent: -999, error: 0, warn: 1, info: 3, debug: 4, verbose: 5 };
 		if (level in levelMap) {
 			consola.level = levelMap[level];
