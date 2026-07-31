@@ -7,7 +7,7 @@ export type InterpolationVars = Record<string, string>;
  * Unknown tokens are left as-is.
  */
 export function interpolate(template: string, vars: InterpolationVars): string {
-	return template.replace(/\{([^{}]+)\}/g, (_match, key: string) => {
+	return template.replace(/\{(?<key>[^{}]+)\}/g, (_match, key: string) => {
 		const trimmed = key.trim();
 		return trimmed in vars ? vars[trimmed] : `{${trimmed}}`;
 	});
@@ -27,7 +27,7 @@ export function interpolate(template: string, vars: InterpolationVars): string {
  *   {anyKey}         — any key defined in config.vars
  */
 export function buildVars(config: MassCommandsConfig, project: ProjectConfig): InterpolationVars {
-	const org = project.org ?? config.org ?? config.vars?.["org"] ?? "";
+	const org = project.org ?? config.org ?? config.vars?.org ?? "";
 
 	return {
 		// config.vars spread first (lowest priority)
@@ -36,6 +36,6 @@ export function buildVars(config: MassCommandsConfig, project: ProjectConfig): I
 		...project.vars,
 		// built-ins always win
 		projectName: project.name,
-		org: org,
+		org,
 	};
 }

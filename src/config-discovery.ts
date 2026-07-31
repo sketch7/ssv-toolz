@@ -30,7 +30,7 @@ export function discoverConfigs(dir: string): ConfigEntry[] {
 			const filePath = join(e.parentPath, e.name);
 			const raw = relative(dir, filePath)
 				.replace(/\\/g, "/")
-				.replace(/\.(yaml|yml)$/, "");
+				.replace(/\.(?<ext>yaml|yml)$/, "");
 			const name = trimRedundantSegmentPrefix(raw);
 			return { name, filePath };
 		})

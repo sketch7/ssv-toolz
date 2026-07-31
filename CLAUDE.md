@@ -30,8 +30,10 @@ There is no test suite/`test` script in this repo currently — verify changes v
 ### Re-link after rebuilding
 
 ```bash
-pnpm build && pnpm link --global
+pnpm build && pnpm add -g .
 ```
+
+> pnpm 11 removed `pnpm link --global` — `pnpm add -g .` is the replacement for making the `ssv` bin available globally.
 
 ## Architecture
 
@@ -97,20 +99,19 @@ Import via `import { colors } from "consola/utils"`. Never use `chalk`.
 
 ## Toolchain
 
-| Tool              | Role                                              |
-| ----------------- | ------------------------------------------------- |
-| `tsdown`          | TypeScript → ESM bundler (wraps Rolldown)         |
-| `tsx`             | TypeScript runner / watcher (dev only)            |
-| `oxlint`          | Fast linter                                       |
-| `oxfmt`           | Rust-based formatter                              |
-| `valibot`         | Runtime schema validation + type inference        |
-| `consola`         | Logging (`consola.info/warn/error/success/fatal`) |
-| `consola/utils`   | `colors` export — ANSI color helpers              |
-| `listr2`          | Concurrent task runner with progress rendering    |
-| `execa`           | Shell command execution (`stdio: "pipe"`)         |
-| `yaml`            | YAML config file parsing                          |
-| `commander`       | CLI argument parsing                              |
-| `update-notifier` | Non-blocking update check on each run             |
+| Tool              | Role                                                                       |
+| ----------------- | -------------------------------------------------------------------------- |
+| `tsdown`          | TypeScript → ESM bundler (wraps Rolldown)                                  |
+| `oxlint`          | Fast linter (`typeAware: true` — type-checked rules via `oxlint-tsgolint`) |
+| `oxfmt`           | Rust-based formatter                                                       |
+| `valibot`         | Runtime schema validation + type inference                                 |
+| `consola`         | Logging (`consola.info/warn/error/success/fatal`)                          |
+| `consola/utils`   | `colors` export — ANSI color helpers                                       |
+| `listr2`          | Concurrent task runner with progress rendering                             |
+| `execa`           | Shell command execution (`stdio: "pipe"`)                                  |
+| `yaml`            | YAML config file parsing                                                   |
+| `commander`       | CLI argument parsing                                                       |
+| `update-notifier` | Non-blocking update check on each run                                      |
 
 ## Requirements
 
