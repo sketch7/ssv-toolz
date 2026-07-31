@@ -7,7 +7,7 @@ export type InterpolationVars = Record<string, string>;
  * Unknown tokens are left as-is.
  */
 export function interpolate(template: string, vars: InterpolationVars): string {
-	return template.replace(/\{([^{}]+)\}/g, (_match, key: string) => {
+	return template.replace(/\{(?<key>[^{}]+)\}/g, (_match, key: string) => {
 		const trimmed = key.trim();
 		return trimmed in vars ? vars[trimmed] : `{${trimmed}}`;
 	});

@@ -1,15 +1,10 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import { consola } from "consola";
-import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import updateNotifier from "update-notifier";
 
 import registerMassExecCommand from "./commands/mass-exec";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const pkg = JSON.parse(readFileSync(resolve(__dirname, "../package.json"), "utf8")) as { name: string; version: string };
+import pkg from "../package.json" with { type: "json" };
 
 // Non-blocking update check — shows notification on next run if an update is available
 updateNotifier({ pkg }).notify();

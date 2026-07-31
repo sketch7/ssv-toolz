@@ -19,15 +19,19 @@ export function getSettingsPath(): string {
 	return join(homedir(), ".ssv", "config.json");
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null;
+}
+
 export function readSettings(): SsvSettings {
 	const settingsPath = getSettingsPath();
 	if (!existsSync(settingsPath)) {
 		return {};
 	}
 	try {
-		const raw = JSON.parse(readFileSync(settingsPath, "utf8")) as Record<string, unknown>;
+		const raw: unknown = JSON.parse(readFileSync(settingsPath, "utf8"));
 		// migrate legacy massExecDir field
-		if (!("configRoot" in raw) && "massExecDir" in raw) {
+		if (isRecord(raw) && !("configRoot" in raw) && "massExecDir" in raw) {
 			raw.configRoot = raw.massExecDir;
 		}
 		const result = v.safeParse(SsvSettingsSchema, raw);
