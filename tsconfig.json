@@ -8,6 +8,8 @@
     "outDir": "./dist",
     "strict": true,
     "verbatimModuleSyntax": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "declaration": true,

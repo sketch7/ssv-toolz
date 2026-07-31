@@ -86,7 +86,6 @@ Import via `import { colors } from "consola/utils"`. Never use `chalk`.
 | Tool              | Role                                              |
 | ----------------- | ------------------------------------------------- |
 | `tsdown`          | TypeScript → ESM bundler (wraps Rolldown)         |
-| `tsx`             | TypeScript runner / watcher (dev only)            |
 | `oxlint`          | Fast linter                                       |
 | `oxfmt`           | Rust-based formatter                              |
 | `valibot`         | Runtime schema validation + type inference        |

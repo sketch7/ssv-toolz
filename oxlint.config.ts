@@ -72,4 +72,22 @@ export default defineConfig({
 			},
 		],
 	},
+	overrides: [
+		{
+			// run directly via `node` (no bundler), so relative imports need explicit extensions
+			files: ["scripts/gen-schema.ts"],
+			rules: {
+				"import/extensions": [
+					"error",
+					"ignorePackages",
+					{
+						ts: "always",
+						tsx: "always",
+						js: "always",
+						jsx: "always",
+					},
+				],
+			},
+		},
+	],
 });
