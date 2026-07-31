@@ -35,12 +35,8 @@ export const JobSchema = v.object({
 
 const ProjectJobOverrideSchema = v.object({
 	name: v.pipe(v.string(), v.description("Job name to match — the override applies when this job is selected")),
-	steps: v.optional(
-		v.pipe(v.array(StepSchema), v.description("Additional steps appended after the job's steps for this project")),
-	),
-	skipSteps: v.optional(
-		v.pipe(v.array(v.string()), v.description("Names of job steps to skip for this project")),
-	),
+	steps: v.optional(v.pipe(v.array(StepSchema), v.description("Additional steps appended after the job's steps for this project"))),
+	skipSteps: v.optional(v.pipe(v.array(v.string()), v.description("Names of job steps to skip for this project"))),
 });
 
 const ProjectSchema = v.object({
@@ -110,7 +106,10 @@ const MassCommandsConfigSchema = v.object({
 		),
 	),
 	defaultJob: v.optional(
-		v.pipe(v.string(), v.description("Name of the default job to run when --job is not specified. Falls back to the first job by convention if omitted.")),
+		v.pipe(
+			v.string(),
+			v.description("Name of the default job to run when --job is not specified. Falls back to the first job by convention if omitted."),
+		),
 	),
 });
 

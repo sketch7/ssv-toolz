@@ -36,6 +36,6 @@ export function buildVars(config: MassCommandsConfig, project: ProjectConfig): I
 		...project.vars,
 		// built-ins always win
 		projectName: project.name,
-		org: org,
+		org,
 	};
 }

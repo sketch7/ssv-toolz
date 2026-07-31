@@ -14,11 +14,11 @@ import { parse as parseYaml } from "yaml";
 
 import { discoverConfigs, resolveNames } from "../config-discovery";
 import type { ConfigEntry } from "../config-discovery";
-import { MassCommandsConfigSchema, SHELL_VALUES } from "../config-schema.js";
-import type { Job, MassCommandsConfig, ProjectConfig, ShellValue, Step } from "../config-schema.js";
-import { buildVars, interpolate } from "../interpolate.js";
-import { getSettingsPath, readSettings, writeSettings } from "../settings.js";
-import type { SsvSettings } from "../settings.js";
+import { MassCommandsConfigSchema, SHELL_VALUES } from "../config-schema";
+import type { Job, MassCommandsConfig, ProjectConfig, ShellValue, Step } from "../config-schema";
+import { buildVars, interpolate } from "../interpolate";
+import { getSettingsPath, readSettings, writeSettings } from "../settings";
+import type { SsvSettings } from "../settings";
 
 const SET_KEYS = ["config-root", "ws-root", "shell"] as const;
 type SetKey = (typeof SET_KEYS)[number];
@@ -393,9 +393,7 @@ async function runMassExec(entries: ConfigEntry[], opts: RunOptions, settings: S
 
 			const job = resolveJob(config, opts.job);
 			if (opts.job && !job && config.jobs?.length) {
-				throw new Error(
-					`Job "${opts.job}" not found in config "${entry.name}". Available: ${config.jobs.map(j => colors.cyan(j.name)).join(", ")}`,
-				);
+				throw new Error(`Job "${opts.job}" not found in config "${entry.name}". Available: ${config.jobs.map(j => colors.cyan(j.name)).join(", ")}`);
 			}
 
 			return configTask.newListr(buildProjectTasks(config, { rootPath, execution: { shell: resolvedShell, dryRun: opts.dryRun }, job }), {
@@ -415,7 +413,7 @@ async function runMassExec(entries: ConfigEntry[], opts: RunOptions, settings: S
 
 	await listr.run();
 
-	const failures = listr.errors;
+	const failures = listr.errors ?? [];
 	if (failures.length > 0) {
 		consola.warn(`${failures.length} task(s) encountered errors:`);
 		for (const err of failures) {
@@ -548,32 +546,32 @@ function buildProjectTasks(
 							subTask.skip(`Directory '${localName}' does not exist — skipping steps`);
 						},
 					},
-				// ---- Job steps ----
-				{
-					title: job ? `${colors.dim("job:")} ${colors.cyan(job.name)}` : "Steps",
-					skip: () => {
-						if (!job) { return "No jobs defined"; }
-						const override = project.jobs?.find(j => j.name === job.name);
-						const skipSet = new Set(override?.skipSteps ?? []);
-						const effectiveJobSteps = job.steps.filter(s => !skipSet.has(s.name));
-						const extraSteps = override?.steps ?? [];
-						return effectiveJobSteps.length === 0 && extraSteps.length === 0 ? `No steps in job "${job.name}"` : false;
+					// ---- Job steps ----
+					{
+						title: job ? `${colors.dim("job:")} ${colors.cyan(job.name)}` : "Steps",
+						skip: () => {
+							if (!job) {
+								return "No jobs defined";
+							}
+							const override = project.jobs?.find(j => j.name === job.name);
+							const skipSet = new Set(override?.skipSteps ?? []);
+							const effectiveJobSteps = job.steps.filter(s => !skipSet.has(s.name));
+							const extraSteps = override?.steps ?? [];
+							return effectiveJobSteps.length === 0 && extraSteps.length === 0 ? `No steps in job "${job.name}"` : false;
+						},
+						task: async (_ctx2, subTask) => {
+							const override = project.jobs?.find(j => j.name === job?.name);
+							const skipSet = new Set(override?.skipSteps ?? []);
+							const jobSteps = (job?.steps ?? [])
+								.filter(s => !skipSet.has(s.name))
+								.map(normalizeStep)
+								.map(s => ({ ...s, run: interpolate(s.run, projectVars) }));
+							const extraSteps = (override?.steps ?? []).map(normalizeStep).map(s => ({ ...s, run: interpolate(s.run, projectVars) }));
+							const steps = [...jobSteps, ...extraSteps];
+							const waves = buildStepWaves(steps);
+							return subTask.newListr(buildWaveTasks(waves, execution, localPath), { concurrent: false, exitOnError: true });
+						},
 					},
-					task: async (_ctx2, subTask) => {
-						const override = project.jobs?.find(j => j.name === job?.name);
-						const skipSet = new Set(override?.skipSteps ?? []);
-						const jobSteps = (job?.steps ?? [])
-							.filter(s => !skipSet.has(s.name))
-							.map(normalizeStep)
-							.map(s => ({ ...s, run: interpolate(s.run, projectVars) }));
-						const extraSteps = (override?.steps ?? [])
-							.map(normalizeStep)
-							.map(s => ({ ...s, run: interpolate(s.run, projectVars) }));
-						const steps = [...jobSteps, ...extraSteps];
-						const waves = buildStepWaves(steps);
-						return subTask.newListr(buildWaveTasks(waves, execution, localPath), { concurrent: false, exitOnError: true });
-					},
-				},
 				],
 				{ concurrent: false, exitOnError: false },
 			);

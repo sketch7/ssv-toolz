@@ -3,7 +3,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import * as v from "valibot";
 
-import { ShellSchema } from "./config-schema.js";
+import { ShellSchema } from "./config-schema";
 
 const SsvSettingsSchema = v.object({
 	configRoot: v.optional(v.pipe(v.string(), v.description("Registered directory scanned for mass-exec config files"))),

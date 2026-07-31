@@ -3,7 +3,7 @@ import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { format } from "oxfmt";
 
-import { MassCommandsConfigSchema } from "../src/config-schema.js";
+import { MassCommandsConfigSchema } from "../src/config-schema";
 
 const schema = toJsonSchema(MassCommandsConfigSchema, {
 	definitions: {},

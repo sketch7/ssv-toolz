@@ -30,8 +30,10 @@ There is no test suite/`test` script in this repo currently — verify changes v
 ### Re-link after rebuilding
 
 ```bash
-pnpm build && pnpm link --global
+pnpm build && pnpm add -g .
 ```
+
+> pnpm 11 removed `pnpm link --global` — `pnpm add -g .` is the replacement for making the `ssv` bin available globally.
 
 ## Architecture
 
