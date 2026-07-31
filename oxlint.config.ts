@@ -5,6 +5,9 @@ export default defineConfig({
 	env: {
 		node: true,
 	},
+	options: {
+		typeAware: true,
+	},
 	categories: {
 		correctness: "error",
 		restriction: "error",

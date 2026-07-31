@@ -10,11 +10,7 @@
     "verbatimModuleSyntax": true,
     "noEmit": true,
     "allowImportingTsExtensions": true,
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true
+    "skipLibCheck": true
   },
   "include": ["src/**/*", "scripts/**/*", "*.config.ts"],
   "exclude": ["node_modules", "dist"]

@@ -44,6 +44,7 @@
     "@valibot/to-json-schema": "^1.7.1",
     "oxfmt": "^0.61.0",
     "oxlint": "^1.76.0",
+    "oxlint-tsgolint": "^7.0.2001",
     "tsdown": "^0.22.14",
     "typescript": "^7.0.2"
   },
