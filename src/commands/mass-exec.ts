@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { consola } from "consola";
 import { colors } from "consola/utils";
-import { execa } from "execa";
+import { execa, ExecaError } from "execa";
 import type { DefaultRenderer, ListrTask, ListrTaskWrapper, SimpleRenderer } from "listr2";
 import { Listr } from "listr2";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
@@ -14,14 +14,22 @@ import { parse as parseYaml } from "yaml";
 
 import { discoverConfigs, resolveNames } from "../config-discovery";
 import type { ConfigEntry } from "../config-discovery";
-import { MassCommandsConfigSchema, SHELL_VALUES } from "../config-schema.js";
-import type { Job, MassCommandsConfig, ProjectConfig, ShellValue, Step } from "../config-schema.js";
-import { buildVars, interpolate } from "../interpolate.js";
-import { getSettingsPath, readSettings, writeSettings } from "../settings.js";
-import type { SsvSettings } from "../settings.js";
+import { MassCommandsConfigSchema, SHELL_VALUES } from "../config-schema";
+import type { Job, MassCommandsConfig, ProjectConfig, ShellValue, Step } from "../config-schema";
+import { buildVars, interpolate } from "../interpolate";
+import { getSettingsPath, readSettings, writeSettings } from "../settings";
+import type { SsvSettings } from "../settings";
 
 const SET_KEYS = ["config-root", "ws-root", "shell"] as const;
 type SetKey = (typeof SET_KEYS)[number];
+
+function isSetKey(key: string): key is SetKey {
+	return (SET_KEYS as readonly string[]).includes(key);
+}
+
+function isShellValue(value: string): value is ShellValue {
+	return (SHELL_VALUES as readonly string[]).includes(value);
+}
 
 interface RunOptions {
 	project?: string;
@@ -41,12 +49,12 @@ export default function registerMassExecCommand(program: Command): void {
 		.argument("<key>", `Setting name: ${SET_KEYS.join(" | ")}`)
 		.argument("<value>", "Value to store")
 		.action((key: string, value: string) => {
-			if (!(SET_KEYS as readonly string[]).includes(key)) {
+			if (!isSetKey(key)) {
 				consola.error(`Unknown key "${key}". Valid keys: ${SET_KEYS.join(", ")}`);
 				process.exit(1);
 			}
 			const settings = readSettings();
-			if ((key as SetKey) === "config-root") {
+			if (key === "config-root") {
 				const absValue = resolve(value);
 				if (!existsSync(absValue)) {
 					consola.error(`Directory not found: ${absValue}`);
@@ -54,16 +62,16 @@ export default function registerMassExecCommand(program: Command): void {
 				}
 				writeSettings({ ...settings, configRoot: absValue });
 				consola.success(`config-root set to: ${colors.cyan(absValue)}`);
-			} else if ((key as SetKey) === "ws-root") {
+			} else if (key === "ws-root") {
 				const absValue = resolve(value);
 				writeSettings({ ...settings, wsRoot: absValue });
 				consola.success(`ws-root set to: ${colors.cyan(absValue)}`);
 			} else {
-				if (!(SHELL_VALUES as readonly string[]).includes(value)) {
+				if (!isShellValue(value)) {
 					consola.error(`Invalid shell "${value}". Valid values: ${SHELL_VALUES.join(", ")}`);
 					process.exit(1);
 				}
-				writeSettings({ ...settings, shell: value as ShellValue });
+				writeSettings({ ...settings, shell: value });
 				consola.success(`shell set to: ${colors.cyan(value)}`);
 			}
 		});
@@ -81,7 +89,12 @@ export default function registerMassExecCommand(program: Command): void {
 
 				const defaultShell = settings.shell ?? "bash";
 				const shellInput = (await rl.question(colors.cyan(`Shell [${defaultShell}] (${SHELL_VALUES.join("|")}): `))).trim();
-				const shell = (shellInput || defaultShell) as ShellValue;
+				const shellCandidate = shellInput || defaultShell;
+				if (!isShellValue(shellCandidate)) {
+					consola.error(`Invalid shell "${shellCandidate}". Valid values: ${SHELL_VALUES.join(", ")}`);
+					process.exit(1);
+				}
+				const shell = shellCandidate;
 
 				const defaultConfigRoot = settings.configRoot ?? "";
 				const configRootPrompt = defaultConfigRoot ? colors.cyan(`Config root [${defaultConfigRoot}]: `) : colors.cyan("Config root: ");
@@ -305,24 +318,24 @@ function buildStepWaves(steps: NormalizedStep[]): NormalizedStep[][] {
  * Returns undefined if no jobs are defined, or if jobName is specified but not found.
  */
 function resolveJob(config: MassCommandsConfig, jobName?: string): Job | undefined {
-	if (!config.jobs?.length) {
-		return;
+	const { jobs } = config;
+	if (!jobs?.length) {
+		return jobs?.[0];
 	}
 
 	if (jobName) {
-		return config.jobs.find(j => j.name === jobName);
+		return jobs.find(j => j.name === jobName);
 	}
 
 	if (config.defaultJob) {
-		const found = config.jobs.find(j => j.name === config.defaultJob);
-		if (!found) {
-			consola.warn(`Config defaultJob "${config.defaultJob}" not found — using first job "${config.jobs[0].name}"`);
-			return config.jobs[0];
+		const found = jobs.find(j => j.name === config.defaultJob);
+		if (found) {
+			return found;
 		}
-		return found;
+		consola.warn(`Config defaultJob "${config.defaultJob}" not found — using first job "${jobs[0].name}"`);
 	}
 
-	return config.jobs[0]; // Convention: first job is the default
+	return jobs[0]; // Convention: first job is the default
 }
 
 // ---------------------------------------------------------------------------
@@ -393,11 +406,10 @@ async function runMassExec(entries: ConfigEntry[], opts: RunOptions, settings: S
 
 			const job = resolveJob(config, opts.job);
 			if (opts.job && !job && config.jobs?.length) {
-				throw new Error(
-					`Job "${opts.job}" not found in config "${entry.name}". Available: ${config.jobs.map(j => colors.cyan(j.name)).join(", ")}`,
-				);
+				throw new Error(`Job "${opts.job}" not found in config "${entry.name}". Available: ${config.jobs.map(j => colors.cyan(j.name)).join(", ")}`);
 			}
 
+			// oxlint-disable-next-line consistent-return -- listr2 task: nests a Listr, or bails via configTask.skip() above
 			return configTask.newListr(buildProjectTasks(config, { rootPath, execution: { shell: resolvedShell, dryRun: opts.dryRun }, job }), {
 				concurrent: concurrency,
 				exitOnError: false,
@@ -415,7 +427,7 @@ async function runMassExec(entries: ConfigEntry[], opts: RunOptions, settings: S
 
 	await listr.run();
 
-	const failures = listr.errors;
+	const failures = listr.errors ?? [];
 	if (failures.length > 0) {
 		consola.warn(`${failures.length} task(s) encountered errors:`);
 		for (const err of failures) {
@@ -512,6 +524,7 @@ function buildProjectTasks(
 			const localName = prefix ? `${prefix.replace(/\.+$/, "")}.${project.name.replace(/^\.+/, "")}` : project.name;
 			const localPath = resolve(rootPath, localName);
 
+			// oxlint-disable-next-line consistent-return -- listr2 task: nests a Listr, or bails via task.skip() above
 			return task.newListr(
 				[
 					// ---- Clone ----
@@ -548,32 +561,32 @@ function buildProjectTasks(
 							subTask.skip(`Directory '${localName}' does not exist — skipping steps`);
 						},
 					},
-				// ---- Job steps ----
-				{
-					title: job ? `${colors.dim("job:")} ${colors.cyan(job.name)}` : "Steps",
-					skip: () => {
-						if (!job) { return "No jobs defined"; }
-						const override = project.jobs?.find(j => j.name === job.name);
-						const skipSet = new Set(override?.skipSteps ?? []);
-						const effectiveJobSteps = job.steps.filter(s => !skipSet.has(s.name));
-						const extraSteps = override?.steps ?? [];
-						return effectiveJobSteps.length === 0 && extraSteps.length === 0 ? `No steps in job "${job.name}"` : false;
+					// ---- Job steps ----
+					{
+						title: job ? `${colors.dim("job:")} ${colors.cyan(job.name)}` : "Steps",
+						skip: () => {
+							if (!job) {
+								return "No jobs defined";
+							}
+							const override = project.jobs?.find(j => j.name === job.name);
+							const skipSet = new Set(override?.skipSteps ?? []);
+							const effectiveJobSteps = job.steps.filter(s => !skipSet.has(s.name));
+							const extraSteps = override?.steps ?? [];
+							return effectiveJobSteps.length === 0 && extraSteps.length === 0 ? `No steps in job "${job.name}"` : false;
+						},
+						task: async (_ctx2, subTask) => {
+							const override = project.jobs?.find(j => j.name === job?.name);
+							const skipSet = new Set(override?.skipSteps ?? []);
+							const jobSteps = (job?.steps ?? [])
+								.filter(s => !skipSet.has(s.name))
+								.map(normalizeStep)
+								.map(s => ({ ...s, run: interpolate(s.run, projectVars) }));
+							const extraSteps = (override?.steps ?? []).map(normalizeStep).map(s => ({ ...s, run: interpolate(s.run, projectVars) }));
+							const steps = [...jobSteps, ...extraSteps];
+							const waves = buildStepWaves(steps);
+							return subTask.newListr(buildWaveTasks(waves, execution, localPath), { concurrent: false, exitOnError: true });
+						},
 					},
-					task: async (_ctx2, subTask) => {
-						const override = project.jobs?.find(j => j.name === job?.name);
-						const skipSet = new Set(override?.skipSteps ?? []);
-						const jobSteps = (job?.steps ?? [])
-							.filter(s => !skipSet.has(s.name))
-							.map(normalizeStep)
-							.map(s => ({ ...s, run: interpolate(s.run, projectVars) }));
-						const extraSteps = (override?.steps ?? [])
-							.map(normalizeStep)
-							.map(s => ({ ...s, run: interpolate(s.run, projectVars) }));
-						const steps = [...jobSteps, ...extraSteps];
-						const waves = buildStepWaves(steps);
-						return subTask.newListr(buildWaveTasks(waves, execution, localPath), { concurrent: false, exitOnError: true });
-					},
-				},
 				],
 				{ concurrent: false, exitOnError: false },
 			);
@@ -602,10 +615,14 @@ async function runCommand(shell: string, cmd: string, cwd: string): Promise<void
 
 	try {
 		await execa(shell, shellArgs, { cwd, stdio: "pipe" });
-	} catch (err: unknown) {
-		const { exitCode } = err as { exitCode?: number };
-		const stderr = (err as { stderr?: string }).stderr ?? "";
-		throw new Error(`Command failed (exit ${exitCode ?? "?"}): ${cmd}${stderr ? `\n${stderr}` : ""}`, { cause: err });
+	} catch (err) {
+		if (!(err instanceof ExecaError)) {
+			throw err;
+		}
+		// oxlint-disable-next-line no-unnecessary-type-conversion -- ExecaError.stderr's type depends on stdio options; String() guards against non-string values
+		const stderr = String(err.stderr ?? "");
+		const stderrSuffix = stderr ? `\n${stderr}` : "";
+		throw new Error(`Command failed (exit ${err.exitCode ?? "?"}): ${cmd}${stderrSuffix}`, { cause: err });
 	}
 }
 

@@ -213,7 +213,6 @@ projects:
           - name: build-app
             run: npm run build
             needs: [restore]
-
 ```
 
 ### Top-level config fields
@@ -233,14 +232,14 @@ projects:
 
 ### Project fields
 
-| Field             | Required | Description                                                                                       |
-| ----------------- | -------- | ------------------------------------------------------------------------------------------------- |
-| `name`            | ✓        | Project name (used as clone folder name, and for `{projectName}` interpolation).                  |
-| `url`             |          | Git clone URL. Overrides config-level `cloneUrlTemplate`. Supports interpolation.                 |
-| `org`             |          | Per-project org override for `{org}` interpolation.                                               |
-| `clonePrefix`     |          | Per-project clone prefix override.                                                                |
-| `vars`            |          | Per-project variable overrides — merged over config-level `vars`.                                 |
-| `jobs`            |          | Per-job overrides — list of `{ name, steps?, skipSteps? }`. `steps` are appended after the job's steps; `skipSteps` filters job steps by name. |
+| Field         | Required | Description                                                                                                                                    |
+| ------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`        | ✓        | Project name (used as clone folder name, and for `{projectName}` interpolation).                                                               |
+| `url`         |          | Git clone URL. Overrides config-level `cloneUrlTemplate`. Supports interpolation.                                                              |
+| `org`         |          | Per-project org override for `{org}` interpolation.                                                                                            |
+| `clonePrefix` |          | Per-project clone prefix override.                                                                                                             |
+| `vars`        |          | Per-project variable overrides — merged over config-level `vars`.                                                                              |
+| `jobs`        |          | Per-job overrides — list of `{ name, steps?, skipSteps? }`. `steps` are appended after the job's steps; `skipSteps` filters job steps by name. |
 
 ---
 
@@ -279,11 +278,11 @@ jobs:
 
 ### Job fields
 
-| Field         | Required | Description                                                                 |
-| ------------- | -------- | --------------------------------------------------------------------------- |
-| `name`        | ✓        | Job identifier. Used with `--job <name>` and `mass-exec jobs`.              |
-| `description` |          | Human-readable description shown by `mass-exec jobs`.                       |
-| `steps`       | ✓        | Steps to run for each project.                                               |
+| Field         | Required | Description                                                    |
+| ------------- | -------- | -------------------------------------------------------------- |
+| `name`        | ✓        | Job identifier. Used with `--job <name>` and `mass-exec jobs`. |
+| `description` |          | Human-readable description shown by `mass-exec jobs`.          |
+| `steps`       | ✓        | Steps to run for each project.                                 |
 
 ### Per-project job overrides
 
@@ -298,20 +297,20 @@ projects:
     jobs:
       - name: setup
         skipSteps:
-          - git-prune-branches   # skip this step for ssv-core only
+          - git-prune-branches # skip this step for ssv-core only
       - name: build
         steps:
-          - name: post-build     # run this extra step after the build job's steps
+          - name: post-build # run this extra step after the build job's steps
             run: npm run verify
 ```
 
 #### ProjectJobOverride fields
 
-| Field       | Required | Description                                                                   |
-| ----------- | -------- | ----------------------------------------------------------------------------- |
+| Field       | Required | Description                                                                  |
+| ----------- | -------- | ---------------------------------------------------------------------------- |
 | `name`      | ✓        | Job name to match. Must correspond to a job defined in `jobs`.               |
-| `skipSteps` |          | Names of steps from this job to skip for this project.                        |
-| `steps`     |          | Additional steps appended after the job's (filtered) steps for this project.  |
+| `skipSteps` |          | Names of steps from this job to skip for this project.                       |
+| `steps`     |          | Additional steps appended after the job's (filtered) steps for this project. |
 
 ---
 
@@ -328,10 +327,10 @@ projects:
     jobs:
       - name: setup
         skipSteps:
-          - git-prune-branches   # skip this step for ssv-core only
+          - git-prune-branches # skip this step for ssv-core only
       - name: build
         steps:
-          - name: post-build     # run this extra step after the build job's steps
+          - name: post-build # run this extra step after the build job's steps
             run: npm run verify
 ```
 
@@ -339,7 +338,7 @@ projects:
 
 | Field       | Required | Description                                                                  |
 | ----------- | -------- | ---------------------------------------------------------------------------- |
-| `name`      | ✓        | Job name to match. Must correspond to a job defined in `jobs`.              |
+| `name`      | ✓        | Job name to match. Must correspond to a job defined in `jobs`.               |
 | `skipSteps` |          | Names of steps from this job to skip for this project.                       |
 | `steps`     |          | Additional steps appended after the job's (filtered) steps for this project. |
 
@@ -350,7 +349,6 @@ projects:
 1. `--job <name>` CLI flag
 2. `config.defaultJob` field
 3. First job in the `jobs` array (convention)
-
 
 ---
 
@@ -377,7 +375,7 @@ jobs:
 
 | Field      | Required | Description                                                                                                                                                                                                                                               |
 | ---------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `name`     | ✓        | Step identifier (used in `skipSteps`, `needs`, and progress output).                                                                                                                                                                                |
+| `name`     | ✓        | Step identifier (used in `skipSteps`, `needs`, and progress output).                                                                                                                                                                                      |
 | `run`      | ✓        | Shell expression. Supports interpolation tokens.                                                                                                                                                                                                          |
 | `needs`    |          | Names of steps this step conceptually depends on (informational / documented).                                                                                                                                                                            |
 | `parallel` |          | When `true`, groups this step with adjacent `parallel: true` steps into one concurrent wave. Default: `false`.                                                                                                                                            |

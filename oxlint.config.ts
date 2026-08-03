@@ -5,6 +5,9 @@ export default defineConfig({
 	env: {
 		node: true,
 	},
+	options: {
+		typeAware: true,
+	},
 	categories: {
 		correctness: "error",
 		restriction: "error",
@@ -72,4 +75,22 @@ export default defineConfig({
 			},
 		],
 	},
+	overrides: [
+		{
+			// run directly via `node` (no bundler), so relative imports need explicit extensions
+			files: ["scripts/gen-schema.ts"],
+			rules: {
+				"import/extensions": [
+					"error",
+					"ignorePackages",
+					{
+						ts: "always",
+						tsx: "always",
+						js: "always",
+						jsx: "always",
+					},
+				],
+			},
+		},
+	],
 });

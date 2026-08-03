@@ -1,8 +1,12 @@
-# @ssv/cli — Copilot Instructions
+# CLAUDE.md
 
-`@ssv/cli` (bin: `ssv`) — developer tooling CLI. Currently ships one command: `mass-exec`, a Node.js replacement for the PowerShell `git-mass-commands.ps1` script that clones multiple git repos and runs global + per-repo shell commands concurrently.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Build & Dev Commands
+## Project
+
+`@ssv/cli` (bin: `ssv`) — developer tooling CLI. Currently ships one command: `mass-exec`, a Node.js replacement for a PowerShell `git-mass-commands.ps1` script that clones multiple git repos and runs global + per-repo shell commands concurrently.
+
+## Commands
 
 ```bash
 pnpm install          # Install dependencies
@@ -13,13 +17,23 @@ pnpm start            # Run compiled CLI
 pnpm typecheck        # tsc --noEmit
 pnpm lint             # oxlint .
 pnpm lint:fix         # oxlint --fix .
-pnpm fmt           # oxfmt .
-pnpm fmt:check     # oxfmt . --check
+pnpm fmt              # oxfmt .
+pnpm fmt:check        # oxfmt . --check
 
 pnpm gen-schema       # Regenerate mass-exec.config.schema.json from config-schema.ts
 ```
 
-> **After modifying `src/config-schema.ts`**, always run `pnpm gen-schema` to keep `mass-exec.config.schema.json` in sync.
+There is no test suite/`test` script in this repo currently — verify changes via `pnpm typecheck`, `pnpm lint`, and manual runs (`pnpm dev -- mass-exec ...`).
+
+> **After modifying `src/config-schema.ts`**, always run `pnpm gen-schema` to keep `mass-exec.config.schema.json` in sync — it is auto-generated, never edit it manually.
+
+### Re-link after rebuilding
+
+```bash
+pnpm build && pnpm add -g .
+```
+
+> pnpm 11 removed `pnpm link --global` — `pnpm add -g .` is the replacement for making the `ssv` bin available globally.
 
 ## Architecture
 
@@ -31,12 +45,14 @@ src/
   interpolate.ts          {token} interpolation utilities
   settings.ts             Read/write ~/.ssv/config.json (ws-root, config-root)
   commands/
-    mass-exec.ts          mass-exec command logic (clone, run, listr2 concurrency, dry-run)
+    mass-exec.ts           mass-exec command logic (clone, run, listr2 concurrency, dry-run)
 scripts/
-  gen-schema.ts           Converts Valibot schemas → JSON Schema (auto-generated output)
+  gen-schema.ts            Converts Valibot schemas → JSON Schema (auto-generated output)
 ```
 
 **Data flow:** `cli.ts` → registers `mass-exec` → `settings.ts` reads `~/.ssv/config.json` → `config-discovery.ts` finds config files → Valibot validates → `interpolate.ts` resolves `{tokens}` in URLs and commands → `execa` executes via `listr2` task runner.
+
+**Execution model (`src/commands/mass-exec.ts`):** for each resolved config, each project runs a nested listr2 pipeline: Clone (skipped if already cloned or no URL) → Verify directory → the resolved job's steps. Steps within a job are grouped into "waves" by `buildStepWaves`: consecutive `parallel: true` steps become one concurrent wave, everything else runs sequentially. Job resolution order is `--job` flag → `config.defaultJob` → first job by convention (`resolveJob`).
 
 ## Key Conventions
 
@@ -83,19 +99,19 @@ Import via `import { colors } from "consola/utils"`. Never use `chalk`.
 
 ## Toolchain
 
-| Tool              | Role                                              |
-| ----------------- | ------------------------------------------------- |
-| `tsdown`          | TypeScript → ESM bundler (wraps Rolldown)         |
-| `oxlint`          | Fast linter                                       |
-| `oxfmt`           | Rust-based formatter                              |
-| `valibot`         | Runtime schema validation + type inference        |
-| `consola`         | Logging (`consola.info/warn/error/success/fatal`) |
-| `consola/utils`   | `colors` export — ANSI color helpers              |
-| `listr2`          | Concurrent task runner with progress rendering    |
-| `execa`           | Shell command execution (`stdio: "pipe"`)         |
-| `yaml`            | YAML config file parsing                          |
-| `commander`       | CLI argument parsing                              |
-| `update-notifier` | Non-blocking update check on each run             |
+| Tool              | Role                                                                       |
+| ----------------- | -------------------------------------------------------------------------- |
+| `tsdown`          | TypeScript → ESM bundler (wraps Rolldown)                                  |
+| `oxlint`          | Fast linter (`typeAware: true` — type-checked rules via `oxlint-tsgolint`) |
+| `oxfmt`           | Rust-based formatter                                                       |
+| `valibot`         | Runtime schema validation + type inference                                 |
+| `consola`         | Logging (`consola.info/warn/error/success/fatal`)                          |
+| `consola/utils`   | `colors` export — ANSI color helpers                                       |
+| `listr2`          | Concurrent task runner with progress rendering                             |
+| `execa`           | Shell command execution (`stdio: "pipe"`)                                  |
+| `yaml`            | YAML config file parsing                                                   |
+| `commander`       | CLI argument parsing                                                       |
+| `update-notifier` | Non-blocking update check on each run                                      |
 
 ## Requirements
 
@@ -104,7 +120,7 @@ Import via `import { colors } from "consola/utils"`. Never use `chalk`.
 
 ## Interpolation Tokens
 
-Available in `url` and command strings in config files:
+Available in `url` and command strings in config files (`src/interpolate.ts`):
 
 | Token           | Resolves to                                             |
 | --------------- | ------------------------------------------------------- |
@@ -113,3 +129,8 @@ Available in `url` and command strings in config files:
 | `{anyKey}`      | Any key in `config.vars`                                |
 
 Unknown tokens are left as-is.
+
+## Reference docs
+
+- [docs/mass-exec.md](docs/mass-exec.md) — full reference for `mass-exec`: all CLI options, config file format, step schema, and interpolation tokens.
+- `mass-exec.config.schema.json` — auto-generated JSON Schema for config file authoring/IDE validation. Regenerate with `pnpm gen-schema`, never hand-edit.
