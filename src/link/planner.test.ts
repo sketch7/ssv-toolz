@@ -74,6 +74,36 @@ describe("createLinkPlan", () => {
 		expect(plan.actions.map(action => action.kind)).toEqual(["restore", "link"]);
 	});
 
+	it("restores an old source before relinking the same package from a new source", () => {
+		const state: LinkState = {
+			packages: {
+				"@scope/package": {
+					linkedAt: "2026-08-05T17:00:00.000Z",
+					rootDir: "S:/old-source",
+					sourceDir: "S:/old-source/package",
+					targets: [
+						{
+							backupPath: "S:/consumer/node_modules/@scope/package.ssv-registry-backup",
+							path: "S:/consumer/node_modules/@scope/package",
+						},
+					],
+				},
+			},
+			version: 1,
+		};
+		const desired = [
+			createDesiredPackage({
+				rootDir: "S:/new-source",
+				sourceDir: "S:/new-source/package",
+				targets: [{ path: "S:/consumer/node_modules/@scope/package", status: "conflict" }],
+			}),
+		];
+
+		const plan = createLinkPlan({ desired, noBuild: false, state, warnings: [] });
+
+		expect(plan.actions.map(action => action.kind)).toEqual(["restore", "link"]);
+	});
+
 	it("classifies already-linked, backup-only, conflicting, and missing targets", () => {
 		const plan = createLinkPlan({
 			desired: [

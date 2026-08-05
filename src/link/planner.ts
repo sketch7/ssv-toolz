@@ -73,10 +73,12 @@ export function createLinkPlan(input: CreateLinkPlanInput): LinkPlan {
 	const desired = [...input.desired].sort((left, right) => left.name.localeCompare(right.name));
 	const desiredByName = new Map(desired.map(pkg => [pkg.name, pkg]));
 
-	actions.push(...createRestoreActions(input.state, desiredByName));
+	const restoreActions = createRestoreActions(input.state, desiredByName);
+	const restoredTargets = new Set(restoreActions.map(action => action.target));
+	actions.push(...restoreActions);
 	actions.push(...createBuildActions(desired, input.noBuild));
 	for (const pkg of desired) {
-		actions.push(...createPackageActions(pkg, input.noBuild));
+		actions.push(...createPackageActions(pkg, input.noBuild, restoredTargets));
 	}
 
 	return { actions };
@@ -116,7 +118,7 @@ function createBuildActions(desired: DesiredPackage[], noBuild: boolean): BuildA
 	return [...builds.values()].sort((left, right) => left.rootDir.localeCompare(right.rootDir));
 }
 
-function createPackageActions(pkg: DesiredPackage, noBuild: boolean): PlanAction[] {
+function createPackageActions(pkg: DesiredPackage, noBuild: boolean, restoredTargets: Set<string>): PlanAction[] {
 	if (pkg.targets.length === 0) {
 		return [{ kind: "warn", message: `${pkg.name} has no consumers in this repository` }];
 	}
@@ -131,15 +133,15 @@ function createPackageActions(pkg: DesiredPackage, noBuild: boolean): PlanAction
 
 	return [...pkg.targets]
 		.sort((left, right) => left.path.localeCompare(right.path))
-		.map(target => createTargetAction(pkg, target));
+		.map(target => createTargetAction(pkg, target, restoredTargets));
 }
 
-function createTargetAction(pkg: DesiredPackage, target: DesiredTarget): PlanAction {
+function createTargetAction(pkg: DesiredPackage, target: DesiredTarget, restoredTargets: Set<string>): PlanAction {
 	const common = { name: pkg.name, rootDir: pkg.rootDir, sourceDir: pkg.sourceDir, target: target.path };
 	if (target.status === "already-linked") {
 		return { ...common, kind: "keep" };
 	}
-	if (target.status === "linkable" || target.status === "backup-only") {
+	if (target.status === "linkable" || target.status === "backup-only" || (target.status === "conflict" && restoredTargets.has(target.path))) {
 		return { ...common, kind: "link", outputPath: pkg.outputPath };
 	}
 	return {
