@@ -45,6 +45,7 @@ agent/
 # misc
 /connect.lock
 /coverage
+/link-libs-poc/
 /libpeerconnection.log
 /typings
 
