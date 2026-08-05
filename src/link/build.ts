@@ -1,6 +1,6 @@
+import { execa } from "execa";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { execa } from "execa";
 
 export type BuildStrategy = "nx" | "turbo" | "pnpm" | "none";
 
@@ -10,11 +10,7 @@ export interface BuildRequest {
 	target: string;
 }
 
-export type ProcessExecutor = (
-	command: string,
-	args: readonly string[],
-	options: { cwd: string; stdio: "inherit" },
-) => Promise<unknown>;
+export type ProcessExecutor = (command: string, args: readonly string[], options: { cwd: string; stdio: "inherit" }) => Promise<unknown>;
 
 export function detectBuildStrategy(rootDir: string, target: string): BuildStrategy {
 	if (existsSync(join(rootDir, "nx.json"))) {
@@ -39,7 +35,7 @@ export async function runBuild(request: BuildRequest, execute: ProcessExecutor =
 	}
 }
 
-function getBuildArguments(strategy: BuildStrategy, target: string): string[] | undefined {
+function getBuildArguments(strategy: BuildStrategy, target: string): string[] | null {
 	if (strategy === "nx") {
 		return ["nx", "run-many", "-t", target];
 	}
@@ -49,7 +45,7 @@ function getBuildArguments(strategy: BuildStrategy, target: string): string[] | 
 	if (strategy === "pnpm") {
 		return ["run", target];
 	}
-	return undefined;
+	return null;
 }
 
 function hasPackageScript(manifestPath: string, target: string): boolean {
@@ -58,7 +54,7 @@ function hasPackageScript(manifestPath: string, target: string): boolean {
 		if (typeof manifest !== "object" || manifest === null || !("scripts" in manifest)) {
 			return false;
 		}
-		const scripts = manifest.scripts;
+		const { scripts } = manifest;
 		return typeof scripts === "object" && scripts !== null && target in scripts;
 	} catch {
 		return false;

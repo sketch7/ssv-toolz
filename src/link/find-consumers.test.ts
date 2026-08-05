@@ -54,9 +54,7 @@ describe("findConsumerTargets", () => {
 		createTarget(join(sourceRoot, "node_modules", "@scope", "package"));
 		createTarget(join(rootDir, "node_modules", "@scope", "package"));
 
-		expect(findConsumerTargets(rootDir, "@scope/package", [sourceRoot])).toEqual([
-			join(rootDir, "node_modules", "@scope", "package"),
-		]);
+		expect(findConsumerTargets(rootDir, "@scope/package", [sourceRoot])).toEqual([join(rootDir, "node_modules", "@scope", "package")]);
 	});
 
 	it("rejects malformed package names before scanning", () => {

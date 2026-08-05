@@ -2,9 +2,9 @@ import { Command } from "commander";
 import { resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
+import type { ReconcileOptions, ReconcileResult } from "../link/reconcile";
 import registerLinkCommand from "./link";
 import type { LinkCommandDependencies } from "./link";
-import type { ReconcileOptions, ReconcileResult } from "../link/reconcile";
 
 function createResult(): ReconcileResult {
 	return {
@@ -21,7 +21,7 @@ function createResult(): ReconcileResult {
 }
 
 afterEach(() => {
-	process.exitCode = undefined;
+	process.exitCode = 0;
 });
 
 describe("registerLinkCommand", () => {
@@ -52,17 +52,7 @@ describe("registerLinkCommand", () => {
 		const program = new Command();
 		registerLinkCommand(program, dependencies);
 
-		await program.parseAsync([
-			"node",
-			"ssv",
-			"link",
-			"--root",
-			"S:/consumer",
-			"--config",
-			"custom.yaml",
-			"--no-build",
-			"--dry-run",
-		]);
+		await program.parseAsync(["node", "ssv", "link", "--root", "S:/consumer", "--config", "custom.yaml", "--no-build", "--dry-run"]);
 
 		expect(calls).toEqual([
 			{
@@ -72,6 +62,22 @@ describe("registerLinkCommand", () => {
 				noBuild: true,
 			},
 		]);
+	});
+
+	it("allows automatic builds when --no-build is omitted", async () => {
+		const calls: ReconcileOptions[] = [];
+		const program = new Command();
+		registerLinkCommand(program, {
+			initialize: () => ({ configFile: "config", gitignoreFile: "ignore", overwritten: false }),
+			reconcile: async options => {
+				calls.push(options);
+				return createResult();
+			},
+		});
+
+		await program.parseAsync(["node", "ssv", "link"]);
+
+		expect(calls[0]?.noBuild).toBe(false);
 	});
 
 	it("initializes the selected repository and forwards force", async () => {

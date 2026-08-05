@@ -95,7 +95,10 @@ describe("initializeLinkConfig", () => {
 		const result = initializeLinkConfig({ force: false, rootDir });
 		initializeLinkConfig({ force: true, rootDir });
 
-		expect(loadLinkConfig(result.configFile)).toEqual({ $schema: "./ssv-links.config.schema.json", links: {} });
+		expect(loadLinkConfig(result.configFile)).toEqual({
+			$schema: "https://raw.githubusercontent.com/sketch7/ssv.cli/refs/heads/v1/ssv-links.config.schema.json",
+			links: {},
+		});
 		const gitignore = readFileSync(join(rootDir, ".gitignore"), "utf8");
 		expect(gitignore.match(new RegExp(DEFAULT_STATE_FILE.replaceAll(".", "\\."), "g"))).toHaveLength(1);
 		expect(gitignore.match(new RegExp(`\\*${BACKUP_SUFFIX.replaceAll(".", "\\.")}`, "g"))).toHaveLength(1);

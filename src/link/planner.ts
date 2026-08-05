@@ -67,9 +67,7 @@ export interface LinkPlan {
 }
 
 export function createLinkPlan(input: CreateLinkPlanInput): LinkPlan {
-	const actions: PlanAction[] = [...input.warnings]
-		.sort()
-		.map(message => ({ kind: "warn" as const, message }));
+	const actions: PlanAction[] = [...input.warnings].sort().map(message => ({ kind: "warn" as const, message }));
 	const desired = [...input.desired].sort((left, right) => left.name.localeCompare(right.name));
 	const desiredByName = new Map(desired.map(pkg => [pkg.name, pkg]));
 
@@ -89,7 +87,7 @@ function createRestoreActions(state: LinkState, desiredByName: Map<string, Desir
 	for (const [name, entry] of Object.entries(state.packages).sort(([left], [right]) => left.localeCompare(right))) {
 		const desired = desiredByName.get(name);
 		const desiredTargets = new Set(desired?.targets.map(target => target.path) ?? []);
-		const sourceChanged = desired !== undefined && desired.sourceDir !== entry.sourceDir;
+		const sourceChanged = desired ? desired.sourceDir !== entry.sourceDir : false;
 		for (const target of [...entry.targets].sort((left, right) => left.path.localeCompare(right.path))) {
 			if (!desired || sourceChanged || !desiredTargets.has(target.path)) {
 				actions.push({
@@ -131,9 +129,7 @@ function createPackageActions(pkg: DesiredPackage, noBuild: boolean, restoredTar
 		];
 	}
 
-	return [...pkg.targets]
-		.sort((left, right) => left.path.localeCompare(right.path))
-		.map(target => createTargetAction(pkg, target, restoredTargets));
+	return [...pkg.targets].sort((left, right) => left.path.localeCompare(right.path)).map(target => createTargetAction(pkg, target, restoredTargets));
 }
 
 function createTargetAction(pkg: DesiredPackage, target: DesiredTarget, restoredTargets: Set<string>): PlanAction {

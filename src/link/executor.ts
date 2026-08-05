@@ -32,6 +32,12 @@ export interface ExecutionResult {
 	warnings: string[];
 }
 
+interface ActionContext {
+	consumerRoot: string;
+	dependencies: ExecutorDependencies;
+	failures: string[];
+}
+
 export async function executeLinkPlan(
 	plan: LinkPlan,
 	options: ExecuteOptions,
@@ -52,12 +58,13 @@ export async function executeLinkPlan(
 		if (action.kind === "warn") {
 			warnings.push(action.message);
 		} else if (action.kind === "build") {
+			// oxlint-disable-next-line no-await-in-loop -- actions must execute in plan order for safe recovery
 			if (!(await dependencies.runBuild(action))) {
 				failedRoots.add(action.rootDir);
 				failures.push(`Build failed for ${action.rootDir} (target: ${action.buildTarget})`);
 			}
 		} else if (action.kind === "restore") {
-			const result = executeRestore(action, options.consumerRoot, dependencies, failures);
+			const result = executeRestore(action, { consumerRoot: options.consumerRoot, dependencies, failures });
 			if (result === "restored") {
 				restored += 1;
 				state = removeStateTarget(state, action.name, action.target);
@@ -67,7 +74,7 @@ export async function executeLinkPlan(
 		} else if (action.kind === "keep") {
 			state = upsertStateTarget(state, action, dependencies.now());
 		} else if (!failedRoots.has(action.rootDir)) {
-			const result = executeLink(action, options.consumerRoot, dependencies, failures);
+			const result = executeLink(action, { consumerRoot: options.consumerRoot, dependencies, failures });
 			if (result === "linked" || result === "already-linked") {
 				if (result === "linked") {
 					linked += 1;
@@ -86,45 +93,43 @@ export async function executeLinkPlan(
 	return { failures, linked, restored, state, success: failures.length === 0, warnings };
 }
 
-function executeRestore(
-	action: RestoreAction,
-	consumerRoot: string,
-	dependencies: ExecutorDependencies,
-	failures: string[],
-): RestoreResult | undefined {
+function executeRestore(action: RestoreAction, context: ActionContext): RestoreResult | null {
 	try {
-		const result = dependencies.restore({ consumerRoot, sourceDir: action.sourceDir, target: action.target });
+		const result = context.dependencies.restore({
+			consumerRoot: context.consumerRoot,
+			sourceDir: action.sourceDir,
+			target: action.target,
+		});
 		if (result === "not-owned") {
-			failures.push(`Refused to restore unowned target ${action.target}`);
+			context.failures.push(`Refused to restore unowned target ${action.target}`);
 		} else if (result === "missing-backup") {
-			failures.push(`No backup found while restoring ${action.target}; run pnpm install`);
+			context.failures.push(`No backup found while restoring ${action.target}; run pnpm install`);
 		}
 		return result;
 	} catch (error) {
-		failures.push(`Failed to restore ${action.target}: ${getErrorMessage(error)}`);
-		return undefined;
+		context.failures.push(`Failed to restore ${action.target}: ${getErrorMessage(error)}`);
+		return null;
 	}
 }
 
-function executeLink(
-	action: LinkAction,
-	consumerRoot: string,
-	dependencies: ExecutorDependencies,
-	failures: string[],
-): LinkResult | undefined {
-	if (!dependencies.outputExists(action.outputPath)) {
-		failures.push(`Output missing for ${action.name}: ${action.outputPath}`);
-		return undefined;
+function executeLink(action: LinkAction, context: ActionContext): LinkResult | null {
+	if (!context.dependencies.outputExists(action.outputPath)) {
+		context.failures.push(`Output missing for ${action.name}: ${action.outputPath}`);
+		return null;
 	}
 	try {
-		const result = dependencies.link({ consumerRoot, sourceDir: action.sourceDir, target: action.target });
+		const result = context.dependencies.link({
+			consumerRoot: context.consumerRoot,
+			sourceDir: action.sourceDir,
+			target: action.target,
+		});
 		if (result === "conflict") {
-			failures.push(`Backup or target conflict at ${action.target}`);
+			context.failures.push(`Backup or target conflict at ${action.target}`);
 		}
 		return result;
 	} catch (error) {
-		failures.push(`Failed to link ${action.target}: ${getErrorMessage(error)}`);
-		return undefined;
+		context.failures.push(`Failed to link ${action.target}: ${getErrorMessage(error)}`);
+		return null;
 	}
 }
 
@@ -161,7 +166,7 @@ function removeStateTarget(state: LinkState, name: string, targetPath: string): 
 	if (targets.length > 0) {
 		return { ...state, packages: { ...state.packages, [name]: { ...entry, targets } } };
 	}
-	const { [name]: _removed, ...packages } = state.packages;
+	const packages = Object.fromEntries(Object.entries(state.packages).filter(([packageName]) => packageName !== name));
 	return { ...state, packages };
 }
 
@@ -171,8 +176,8 @@ function createDefaultDependencies(): ExecutorDependencies {
 		now: () => new Date().toISOString(),
 		outputExists: existsSync,
 		restore: restoreTarget,
-		runBuild: action =>
-			runBuild({
+		runBuild: async action =>
+			await runBuild({
 				rootDir: action.rootDir,
 				strategy: detectBuildStrategy(action.rootDir, action.buildTarget),
 				target: action.buildTarget,

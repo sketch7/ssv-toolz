@@ -14,7 +14,7 @@ function createDependencies(overrides: Partial<ExecutorDependencies> = {}): Exec
 		outputExists: () => true,
 		restore: () => "restored",
 		runBuild: async () => true,
-		writeState: () => undefined,
+		writeState: () => null,
 		...overrides,
 	};
 }
@@ -62,7 +62,7 @@ describe("executeLinkPlan", () => {
 				},
 			],
 		};
-		let writtenState: LinkState | undefined;
+		const writtenStates: LinkState[] = [];
 		const dependencies = createDependencies({
 			link: () => {
 				events.push("link");
@@ -78,7 +78,7 @@ describe("executeLinkPlan", () => {
 			},
 			writeState: (_path, state) => {
 				events.push("state");
-				writtenState = state;
+				writtenStates.push(state);
 			},
 		});
 
@@ -91,7 +91,7 @@ describe("executeLinkPlan", () => {
 		expect(events).toEqual(["build", "output", "link", "state"]);
 		expect(result.success).toBe(true);
 		expect(result.linked).toBe(1);
-		expect(writtenState?.packages["@scope/package"]?.targets).toEqual([
+		expect(writtenStates[0]?.packages["@scope/package"]?.targets).toEqual([
 			{
 				backupPath: "S:/consumer/node_modules/@scope/package.ssv-registry-backup",
 				path: "S:/consumer/node_modules/@scope/package",

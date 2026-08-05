@@ -10,6 +10,11 @@ export interface LinkablePackage {
 	sourceDir: string;
 }
 
+interface ScanContext {
+	packages: Map<string, LinkablePackage>;
+	rootDir: string;
+}
+
 export function discoverPackages(rootDir: string): Map<string, LinkablePackage> {
 	const packages = new Map<string, LinkablePackage>();
 	if (!existsSync(rootDir)) {
@@ -18,13 +23,13 @@ export function discoverPackages(rootDir: string): Map<string, LinkablePackage> 
 
 	for (const entry of readDirectories(rootDir)) {
 		if (!SKIP_DIRECTORIES.has(entry)) {
-			scanDirectory(join(rootDir, entry), rootDir, 1, packages);
+			scanDirectory(join(rootDir, entry), 1, { packages, rootDir });
 		}
 	}
 	return packages;
 }
 
-function scanDirectory(directory: string, rootDir: string, depth: number, packages: Map<string, LinkablePackage>): void {
+function scanDirectory(directory: string, depth: number, context: ScanContext): void {
 	if (depth > MAX_DISCOVERY_DEPTH) {
 		return;
 	}
@@ -32,15 +37,15 @@ function scanDirectory(directory: string, rootDir: string, depth: number, packag
 	const manifestPath = join(directory, "package.json");
 	if (existsSync(manifestPath)) {
 		const name = readPackageName(manifestPath);
-		if (name && !packages.has(name)) {
-			packages.set(name, { name, rootDir, sourceDir: directory });
+		if (name && !context.packages.has(name)) {
+			context.packages.set(name, { name, rootDir: context.rootDir, sourceDir: directory });
 		}
 		return;
 	}
 
 	for (const entry of readDirectories(directory)) {
 		if (!SKIP_DIRECTORIES.has(entry)) {
-			scanDirectory(join(directory, entry), rootDir, depth + 1, packages);
+			scanDirectory(join(directory, entry), depth + 1, context);
 		}
 	}
 }
@@ -56,7 +61,7 @@ function readDirectories(directory: string): string[] {
 	}
 }
 
-function readPackageName(manifestPath: string): string | undefined {
+function readPackageName(manifestPath: string): string | null {
 	try {
 		const manifest: unknown = JSON.parse(readFileSync(manifestPath, "utf8"));
 		if (typeof manifest === "object" && manifest !== null && "name" in manifest && typeof manifest.name === "string") {
@@ -65,5 +70,5 @@ function readPackageName(manifestPath: string): string | undefined {
 	} catch {
 		// An unreadable package is not linkable; sibling discovery can continue.
 	}
-	return undefined;
+	return null;
 }

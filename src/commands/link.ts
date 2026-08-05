@@ -1,4 +1,4 @@
-import { Command } from "commander";
+import type { Command } from "commander";
 import { consola } from "consola";
 import { colors } from "consola/utils";
 import { resolve } from "node:path";
@@ -36,17 +36,17 @@ export default function registerLinkCommand(program: Command, dependencies = DEF
 		.description("Link local pnpm packages into this repository")
 		.option("-r, --root <path>", "Consumer repository root (defaults to the current directory)")
 		.option("--config <path>", "Configuration file (defaults to .ssv-links.yaml under the root)")
-		.option("--no-build", "Skip automatic builds for packages with missing output", false)
+		.option("--no-build", "Skip automatic builds for packages with missing output")
 		.option("-d, --dry-run", "Show the reconciliation plan without builds or filesystem changes", false)
 		.action(async (options: LinkCliOptions) => {
 			const consumerRoot = resolve(options.root ?? process.cwd());
 			try {
 				consola.start(`Reconciling local package links in ${colors.dim(consumerRoot)}`);
 				const result = await dependencies.reconcile({
-					configFile: options.config ? resolve(consumerRoot, options.config) : undefined,
+					...(options.config ? { configFile: resolve(consumerRoot, options.config) } : {}),
 					consumerRoot,
 					dryRun: options.dryRun,
-					noBuild: options.build === false,
+					noBuild: !options.build,
 				});
 				renderResult(result, options.dryRun);
 				if (!result.execution.success) {

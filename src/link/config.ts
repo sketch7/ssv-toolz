@@ -11,8 +11,10 @@ export const DEFAULT_CONFIG_FILE = ".ssv-links.yaml";
 export const DEFAULT_STATE_FILE = ".ssv-links.state.json";
 export const BACKUP_SUFFIX = ".ssv-registry-backup";
 
-const CONFIG_TEMPLATE = `# yaml-language-server: $schema=./ssv-links.config.schema.json
-$schema: ./ssv-links.config.schema.json
+const LINK_SCHEMA_URL = "https://raw.githubusercontent.com/sketch7/ssv.cli/refs/heads/v1/ssv-links.config.schema.json";
+
+const CONFIG_TEMPLATE = `# yaml-language-server: $schema=${LINK_SCHEMA_URL}
+$schema: ${LINK_SCHEMA_URL}
 
 # Source roots may be absolute or relative to this repository.
 links: {}

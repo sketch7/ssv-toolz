@@ -53,9 +53,7 @@ function findPnpmTargets(pnpmDirectory: string, packageSegments: string[]): stri
 
 function splitPackageName(packageName: string): string[] {
 	const segments = packageName.split("/");
-	const valid = packageName.startsWith("@")
-		? segments.length === 2 && segments.every(Boolean)
-		: segments.length === 1 && Boolean(segments[0]);
+	const valid = packageName.startsWith("@") ? segments.length === 2 && segments.every(Boolean) : segments.length === 1 && Boolean(segments[0]);
 	if (!valid) {
 		throw new Error(`Invalid package name: ${packageName}`);
 	}

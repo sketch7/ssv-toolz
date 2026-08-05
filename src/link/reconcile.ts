@@ -5,8 +5,8 @@ import { DEFAULT_CONFIG_FILE, DEFAULT_STATE_FILE, loadLinkConfig, loadLinkState 
 import { discoverPackages } from "./discover-packages";
 import { executeLinkPlan } from "./executor";
 import type { ExecutionResult } from "./executor";
-import { findConsumerTargets } from "./find-consumers";
 import { inspectTarget } from "./filesystem";
+import { findConsumerTargets } from "./find-consumers";
 import { createLinkPlan } from "./planner";
 import type { DesiredPackage, LinkPlan } from "./planner";
 

@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -52,12 +52,9 @@ describe("runBuild", () => {
 		["pnpm", ["run", "compile"]],
 	] as const)("runs the exact pnpm command for %s", async (strategy, expectedArgs) => {
 		const calls: unknown[] = [];
-		const result = await runBuild(
-			{ rootDir: "S:/source", strategy, target: "compile" },
-			async (command, args, options) => {
-				calls.push({ args, command, options });
-			},
-		);
+		const result = await runBuild({ rootDir: "S:/source", strategy, target: "compile" }, async (command, args, options) => {
+			calls.push({ args, command, options });
+		});
 
 		expect(result).toBe(true);
 		expect(calls).toEqual([{ args: expectedArgs, command: "pnpm", options: { cwd: "S:/source", stdio: "inherit" } }]);

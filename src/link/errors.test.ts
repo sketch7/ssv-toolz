@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
 import * as v from "valibot";
+import { describe, expect, it } from "vitest";
 
 import { formatValidationError } from "./errors";
 import { LinkConfigSchema } from "./schema";

@@ -57,11 +57,7 @@ describe("reconcileLinks", () => {
 
 	it("turns missing roots and packages into actionable warnings", async () => {
 		const { consumerRoot } = createFixture();
-		writeFileSync(
-			join(consumerRoot, DEFAULT_CONFIG_FILE),
-			"links:\n  ../missing:\n    packages: ['@scope/unknown']\n",
-			"utf8",
-		);
+		writeFileSync(join(consumerRoot, DEFAULT_CONFIG_FILE), "links:\n  ../missing:\n    packages: ['@scope/unknown']\n", "utf8");
 
 		const result = await reconcileLinks({ consumerRoot, dryRun: true, noBuild: false });
 
@@ -69,7 +65,6 @@ describe("reconcileLinks", () => {
 			{
 				kind: "warn",
 				message: expect.stringContaining("Source root does not exist"),
-				rootDir: undefined,
 			},
 		]);
 	});
