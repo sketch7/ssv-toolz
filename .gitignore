@@ -40,12 +40,12 @@ npm-debug.log
 .claude/skills/
 agent/
 .superpowers
+.playwright-mcp
 
 
 # misc
 /connect.lock
 /coverage
-/link-libs-poc/
 /libpeerconnection.log
 /typings
 
